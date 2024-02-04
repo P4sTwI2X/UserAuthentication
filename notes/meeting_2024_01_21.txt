@@ -1,0 +1,17 @@
+Group work:
+- GitHub for file directory.
+- Weekly reviews (report on what’s done, what’s in the next week and expected results), doesn’t require direct meeting unless stated before.
+Demo idea:
+- System: Authentication system with asymmetric encryption and timestamps.
+- Attack: Suppress-replay attack.
+- Overcome: Upgrade (to be updated).
+1st week: (no requirement on progress)
+- Quý: attack coding. (~W4, 1st week after Tet)
+- Thiện: system coding. (~W4, 1st week after Tet)
+- Việt: symmetric encryption version of authentication system for report. (~W4, 1st week after Tet)
+Questions for TA:
+- Should we demo for all parts of such topic, or just one selected part specifically?
+Submission for 1st seminar link:
+- Weekly progress updates.
+- Proposal: what to do (report & demo), overall plan.
+- Product: report.
