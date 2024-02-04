@@ -1,4 +1,37 @@
 Replicating SSH encryption (used by GitHub) using both symmetric and assymetric encryptions??
 
+
+- User Authentication from the book:
+15.1 Remote UA Principles
+RFC 4949 definition of UA.
+NIST model
+15.2 RUA symmetric
+15.3 Kerberos (guide by https://www.youtube.com/watch?v=5N242XcKAsM)
+
+1. User -> Authen Server: plain. AuServer checks for Client Secret Key (CSK). 
+"I need to see my service friend but I don't know the way"
+
+2. Authen Server -> User: (e: CSK). User uses CSK (generated client side) to get Ticket Granting Server (TGS) attributes and session key. User cannot decrypt Ticket Granting Ticket (TGT), TGS secret key needed. User encrypts User Authenticator with TGS session key.
+"Alright, if it's you, please get to this point to get a ticket, take my business card with you."
+
+3. User -> Ticket Granting Server. TGS decrypts TGT with TGS secret key, gets TGS session key. TGS session key to decrypt User Authenticator, then checks username, ID & timestamps from User Authenticator & TGT. TGS checks cache to counter replay-attacks.
+
+4. TGS -> User: Service attributes (e: TGS session key), Service ticket (e: Service secret key). User uses TGS (#2) to get Service session key to encrypt User Authenticator.
+"So, it's THAT guy who sent you here and you know how I work: do not spam. Now here's the service guy you want to get, take my business card as well."
+
+5. User -> Service: Service ticket & User Authenticator. Service decrypts Service ticket (d: Service secret key), gets Service session key to decrypt User Authenticator (d: Service session key). Service checks username, ID & timestamps.
+
+6: Service -> User: Service authenticator (d: service session key).
+"Alright, it's THAT guy I trusted, you seem legit for this time period. Here's what you want from the start."
+
+//
+Question:
+#1. Why differentiate Authentication Server and Ticket Granting Server?
+#2. In total, what does the user get?
+
+15.4 RUA assymmetric
+15.5 FIM
+15.6 PIV
+
 - How it works (https://tusharf5.com/posts/ssh-deep-dive/):
 
