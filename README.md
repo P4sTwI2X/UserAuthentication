@@ -1,4 +1,4 @@
-# This is the property of group 15, class 21MMT _ Encryption & Application.\
+# This is the property of group 15, class 21MMT _ Encryption & Application.
 Topic no. 14: User Authentication.\
 \
 21127170 _ Nguyễn Thế Thiện\
