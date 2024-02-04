@@ -1,0 +1,5 @@
+1st seminar submission (the whole GitHub?):
+- Report (Việt) ~6pm, 05/02.
+- Proposal (presentation script, demo script: Kerberos on a specific real-life application).
+- Overall schedule and work assignments.
+- Meeting notes.

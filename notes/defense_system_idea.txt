@@ -33,5 +33,5 @@ Question:
 15.5 FIM
 15.6 PIV
 
-- How it works (https://tusharf5.com/posts/ssh-deep-dive/):
+- How it works (https://tusharf5.com/posts/ssh-deep-dive/).
 
