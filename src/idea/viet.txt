@@ -1,0 +1,38 @@
+Việt: Client - Service
+
+5a. User -> Service:
+- Service Ticket (encrypted, check part 4)
+- class UA{
+	string userID;
+	int timestamp; (UNIX, second)
+}
+encrypt(Message:"[userID],[timestamp]", Service session key)
+
+5b. Service decrypt:
+- decrypt(serviceTicket, Service secret key)
+- decrypt(UA, Service session key)
+
+- check(serviceTicket.userID, UA.userID)
+#serviceTicket.split(',')[0] == UA.split(',')[0]
+
+- check(serviceTicket.timestamp, UA.timestamp)
+#serviceTicket.split(',')[2] == UA.split(',')[1]
+
+- check(serviceTicket.userIP, senderIP)
+
+- check(serviceTicket.lifetime > service current time)
+
+5c. Service caching: UA.
+
+6a. Service -> User:
+- class serviceAuthen{
+	string serviceID;
+	int timestamp; (UNIX, second)
+}
+encrypt(Message: "[serviceID],[timestamp]", Service session key)
+
+6b. User check:
+- to be dated, honestly at this part is too much to imagine.
+
+7. User <-> Service:
+- to be dated.

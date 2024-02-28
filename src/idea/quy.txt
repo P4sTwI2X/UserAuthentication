@@ -1,0 +1,41 @@
+Quý: Client - KDC: Ticket Granting Server
+
+3a. User -> TGS:
+
+- Ticket Granting Ticket (encrypted, from part 2).
+Message: some string
+
+- class tgsReq{
+	string serviceID;
+	int ticketLifetime;
+}
+Message: "[serviceID],[ticketLifetime]"
+
+- User Authenticator (encrypted, from part 2, again).
+
+3b. TGS decrypt:
+- decrypt(TGT, TGS secret key) -> extract TGS session key in the form of "[...],[...],...,[TGS session key]"
+- tgsReq
+- decrypt(UA, TGS session key) -> TGS Cache
+
+4a. TGS -> user:
+- class tgsReply{ //encrypted with TGS session key
+	string serviceID;
+	int timestamp; (UNIX, second)
+	int tgsLifetime;
+	string serviceSessionKey;
+}
+encrypted(Message: "[serviceID],[timestamp],[tgsLifetime],[serviceSessionKey], TGS session key)
+
+- class serviceTicket{ //encrypted with Service Secret Key 
+	string userID;
+	string serviceID;
+	int timestamp;
+	string userIP; (IPv4)
+	int serviceTicketLifetime;
+	string serviceSessionKey;
+}
+
+4b. User decrypt:
+- decrypt(tgsReply, TGS session key)
+- output(tgsReply)

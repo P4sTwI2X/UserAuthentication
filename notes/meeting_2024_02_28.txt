@@ -1,0 +1,11 @@
+Demo idea: replicate the Kerberos protocol at a simple level using processes and socket connection.
+
+The architecture is based on this video: https://youtu.be/5N242XcKAsM?si=v59v20NMC_1Wetb3
+
+Each person does these steps: Client.sendReq() -> A.listenReq() -> A.process() -> A.sendReq() -> Client.listenReq() -> Client.output()
+
+Check the /src/idea for each person's job.
+
+Thiện: Client - KDC: Authentication Server
+Quý: Client - KDC: Ticket Granting Server
+Việt: Client - Service

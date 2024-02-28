@@ -1,0 +1,43 @@
+Thiện: Client - KDC: Authentication Server
+
+1. Client -> AS:
+class tgtReq{
+	string userID;
+	string serviceID;
+	string userIP; (IPv4)
+	int tgtLifetime;
+}
+Message: "[userID],[serviceID],[userIP],[tgtLifetime]"
+
+2a. AS -> Client:
+class asReply{
+	string tgsID;
+	int timestamp; (UNIX, second)
+	int tgtLifetime;
+	string tgsSessionKey;
+}
+Message: encrypt(asReply, CSK) //Client Secret Key, check 2b.
+
+class TGT{ //Ticket-granting Ticket
+	string userID;
+	string tgsID;
+	int timestamp; (UNIX, second)
+	string userIP;
+	int tgtLifetime;
+	string tgsSessionKey;
+}
+Message: encrypt(TGT, TGS secret key)
+
+2b. Client decrypt:
+
+//Client Secret Key: encrypt(userID, userPass)
+
+- decrypt(asReply, CSK)
+- output(asReply)
+
+class UA{
+	string userID;
+	int timestamp; (UNIX, second)
+};
+
+- encrypt(UA, TGS SessionKey)
