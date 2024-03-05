@@ -22,7 +22,7 @@ class TGT{ //Ticket-granting Ticket
 	string userID;
 	string tgsID;
 	int timestamp; (UNIX, second)
-	string userIP;
+	int userPort;
 	int tgtLifetime;
 	string tgsSessionKey;
 }

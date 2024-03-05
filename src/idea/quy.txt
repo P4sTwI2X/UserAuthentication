@@ -31,7 +31,7 @@ encrypted(Message: "[serviceID],[timestamp],[tgsLifetime],[serviceSessionKey], T
 	string userID;
 	string serviceID;
 	int timestamp;
-	string userIP; (IPv4)
+	int userPort;
 	int serviceTicketLifetime;
 	string serviceSessionKey;
 }

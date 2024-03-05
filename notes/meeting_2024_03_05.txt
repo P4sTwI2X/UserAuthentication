@@ -1,0 +1,3 @@
+Code: try to finish your own part in the next week. (~Mar 12)
+Change userIP (string) -> userPort (int)
+Viet: if need live work for questioning: Sunday (any time).
