@@ -1,6 +1,6 @@
 Thiện: Client - KDC: Authentication Server
 
-1. Client -> AS:
+1. Client -> AS: done.
 class tgtReq{
 	string userID;
 	string serviceID;
