@@ -1,17 +1,18 @@
 #include <iostream>
-#include <chrono>
-
-// Function to generate the lifetime for a service ticket
-std::chrono::seconds generateServiceTicketLifetime(int durationInSeconds) {
-    return std::chrono::seconds(durationInSeconds);
-}
+#include <string>
+#include "EncryptionUtils.h"
 
 int main() {
-    int durationInSeconds = 3600; // Example: 1 hour (3600 seconds)
-    std::chrono::seconds serviceTicketLifetime = generateServiceTicketLifetime(durationInSeconds);
+    std::string message = "Hello, World! 123";
+    std::string key = "SecretKey";
 
-    // Output the generated lifetime for the service ticket
-    std::cout << "Generated service ticket lifetime: " << serviceTicketLifetime.count() << " seconds" << std::endl;
+    std::string encrypted_message = encrypt(message, key);
+    std::cout << "Encrypted: ";
+    for (char c : encrypted_message) std::cout << std::hex << (int)c << " "; // Display in hex
+    std::cout << std::endl;
+
+    std::string decrypted_message = decrypt(encrypted_message, key);
+    std::cout << "Decrypted: " << decrypted_message << std::endl;
 
     return 0;
 }

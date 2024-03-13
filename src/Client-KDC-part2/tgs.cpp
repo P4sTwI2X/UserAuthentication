@@ -78,29 +78,30 @@ vector<string> splitFields(const string& str) {
     return fields;
 }
 
-bool validateRequest(const string &decryptedUA)
+bool validateRequest(const string &decryptedUA, const string &decryptedTGT)
 {
-    if (decryptedUA.empty())
-    {
-        cerr << "Authentication failed: Empty User Authentication\n";
-        return false;
-    }
-    vector<string> fields = splitFields(decryptedUA);
+    vector<string> uaFields = splitFields(decryptedUA);
+    vector<string> tgtFields = splitFields(decryptedTGT);
 
-
-    const int expectedField = 2;
-    if (fields.size() != expectedField)
+    const int expectedUAField = 2;
+    const int expectedTGTField = 6;
+    if (uaFields.size() != expectedUAField)
     {
         cerr << "Authentication failed: Invalid number of fields in User Authentication\n";
         return false;
     }
-
-    for (int i = 0; i < 5; i++) {
-        if (fields[0] == USER[i])
-            return true;
+    if (tgtFields.size() != expectedTGTField) 
+    {
+        cerr << "Authentication failed: Invalid number of fields in Ticket Granting Ticket\n";
+        return false;
     }
 
-    return false;
+    if (uaFields[0] != tgtFields[0]) 
+    {
+        cerr << "Authentication failed: userID is not valid\n";
+    }
+
+    return true;
 }
 
 void receiveAndSendMsg()
@@ -121,10 +122,9 @@ void receiveAndSendMsg()
     listen(serverSocket, 5);
 
     // accepting connection request
-    // struct sockaddr_in clientAddress;
-    // socklen_t clientAddrLen = sizeof(clientAddress);
-    // int clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientAddrLen);
-    int clientSocket = accept(serverSocket, nullptr, nullptr);
+    struct sockaddr_in clientAddress;
+    socklen_t clientAddrLen = sizeof(clientAddress);
+    int clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientAddrLen);
 
     // recieving data
     char tgtBuffer[1024] = {0};
@@ -135,25 +135,30 @@ void receiveAndSendMsg()
     recv(clientSocket, reqBuffer, 1024, 0);
     recv(clientSocket, uaBuffer, 1024, 0);
 
-    // decrypt tgt and UA for validation
-    // string decryptedTGT = decrypt(string(tgtBuffer), "TGS_SECRET_KEY");
-    // string decryptedUA = decrypt(string(auBuffer), "TGS_SESSION_KEY");
+    // decrypt tgt to get TGS session key
+    string decryptedTGT = decrypt(string(tgtBuffer), "tgtsecretkey");
+
+    // split fields request message fields and TGT message fields (TGT is decrypted)
+    vector<string> reqFields = splitFields(reqBuffer);
+    vector<string> tgtFields = splitFields(decryptedTGT);
+
+    // decrypt UA using TGS session key
+    string decryptedUA = decrypt(string(uaBuffer), tgtFields[5]);
+
+    // split UA fields (after decrypted)
+    vector<string> uaFields = splitFields(decryptedUA);
 
     // validate request
-    bool isAuthenticated = validateRequest(string(uaBuffer));
+    bool isAuthenticated = validateRequest(decryptedUA, decryptedTGT);
     if (!isAuthenticated) {
         cerr << "Authentication failed";
+        close(serverSocket);
         return;
     }
 
     // initial tgsRes and Service Ticket
     tgsRes res;
     ServiceTicket st;
-
-    // split fields
-    vector<string> reqFields = splitFields(reqBuffer);
-    vector<string> uaFields = splitFields(uaBuffer);
-    vector<string> tgtFields = splitFields(tgtBuffer);
     
     // set value for TGS response
     string serviceSessionKey = generateServiceSessionKey(12);
@@ -166,7 +171,7 @@ void receiveAndSendMsg()
     string resMsg = res.convertMessage();
 
     // set value for Service Ticket
-    int userPort = stoi(tgtFields[0]);
+    int userPort = stoi(tgtFields[3]);
     st.serviceID = reqFields[0];
     st.userID = uaFields[0];
     st.timestamp = timestamp;
@@ -176,12 +181,25 @@ void receiveAndSendMsg()
     st.serviceTicketLifetime = ticketLifetime;
     string stMsg = st.convertMessage();
 
-    send(serverSocket, resMsg.data(), resMsg.length(), 0);
-    send(serverSocket, stMsg.data(), stMsg.length(), 0);
+    cout << resMsg << "\n" << stMsg << "\n";
 
-    cout << tgtBuffer << "\n";
-    cout << reqBuffer << "\n";
-    cout << uaBuffer << "\n";
+    string resMsgCipher = encrypt(resMsg, tgtFields[5]);
+    string stMsgCipher = encrypt(stMsg, "servicesecretkey");
+
+    // cout << resMsgCipher << "\n" << stMsgCipher << "\n";
+    // const char* msg[] = {resMsgCipher.c_str(), stMsgCipher.c_str()};
+
+    // for (int i = 0; i < 2; i++) {
+    //     send(clientSocket, msg[i], strlen(msg[i]), 0);
+    //     sleep(1);
+    // }
+    send(clientSocket, resMsgCipher.data(), resMsgCipher.length(), 0);
+    sleep(1);
+    send(clientSocket, stMsgCipher.data(), stMsgCipher.length(), 0);
+
+
+    close(clientSocket);
+    close(serverSocket);
 }
 
 int main()
