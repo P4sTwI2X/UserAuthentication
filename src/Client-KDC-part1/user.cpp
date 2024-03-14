@@ -8,7 +8,23 @@
 #include "EncryptionUtils.h"
 #include <vector>
 
+#define AS_PORT 8080
 #define MAX_BUFFER 1048576
+
+void connect_port(int otherSocket, int port){
+    // specifying address 
+	sockaddr_in otherAddress; 
+	otherAddress.sin_family = AF_INET; 
+	otherAddress.sin_port = htons(port); 
+	otherAddress.sin_addr.s_addr = INADDR_ANY; 
+
+	// sending connection request 
+	int return_code = connect(otherSocket, (struct sockaddr*)&otherAddress, 
+			sizeof(otherAddress)); 
+	if(return_code == -1){
+        printf("Port connection error.\n");
+    }
+}
 
 std::vector<std::string> extractData(std::string str){
 	int temp_ctr = 0;
@@ -23,27 +39,6 @@ std::vector<std::string> extractData(std::string str){
 		data.push_back(str.substr(temp_ctr, str.length()));
 	}
 	return data;
-}
-
-int listen_port(int thisSocket, int port){
-    // specifying the address 
-	sockaddr_in otherAddress; 
-	otherAddress.sin_family = AF_INET; 
-	otherAddress.sin_port = htons(port); 
-	otherAddress.sin_addr.s_addr = INADDR_ANY; 
-
-	// binding socket. 
-	bind(thisSocket, (struct sockaddr*)&otherAddress, 
-		sizeof(otherAddress)); 
-
-	// listening to the assigned socket 
-	listen(thisSocket, 5); 
-
-	// accepting connection request 
-	int clientSocket 
-		= accept(thisSocket, nullptr, nullptr); 
-    
-    return clientSocket;
 }
 
 class tgtReq{
@@ -71,78 +66,79 @@ class clientInfo{
         return encrypt(userID + userPass, "12346789123456789");
         //return encrypt(userID + userPass, key);
     }
+    clientInfo(){
+        this->userSocket = socket(AF_INET, SOCK_STREAM, 0);
+        
+        if(this->userSocket == -1)
+            printf("Socket creation error.\n");
+    }
+    ~clientInfo(){
+        close(userSocket);
+    }
 } user;
 
-void connect_port(int clientSocket, int port){
-    // specifying address 
-	sockaddr_in otherAddress; 
-	otherAddress.sin_family = AF_INET; 
-	otherAddress.sin_port = htons(port); 
-	otherAddress.sin_addr.s_addr = INADDR_ANY; 
-
-	// sending connection request 
-	connect(clientSocket, (struct sockaddr*)&otherAddress, 
-			sizeof(otherAddress)); 
-}
-
-std::string TGTticket_req(int as_port){
-    connect_port(user.userSocket, as_port);
-
+void sendTGTticketReq(){
     // TGT Ticket request construct
     tgtReq user_tgt;
     user_tgt.userID = user.userID;
     user_tgt.serviceID = user.serviceID;
-    user_tgt.userPort = user.userSocket;
+    user_tgt.userPort = AS_PORT;
     user_tgt.tgtLifetime = 60;
 
 	// send TGT Ticket request 
     std::string temp_msg = user_tgt.convert_message();
     printf("User TGT request: %s \n", temp_msg.data());
-	send(user.userSocket, temp_msg.data(), temp_msg.length(), 0); 
+	if(send(user.userSocket, temp_msg.data(), temp_msg.length(), 0) == -1) 
+        printf("Send failed.\n");
+}
 
-    // listen to AS reply
-    int AS_socket = listen_port(user.userSocket, as_port);
+std::vector<std::string> getASreply(int serverSocket){
+    // get data
+    int length;
+    if(recv(serverSocket, &length, sizeof(int)/sizeof(char), 0) == -1)
+        printf("Receive error: int.\n");
+    char buffer[MAX_BUFFER] = { 0 };
+	if(length >= MAX_BUFFER || recv(serverSocket, buffer, length, 0) == -1) // AS reply
+        printf("Receive error.\n");
+    std::string ASreply_en = std::string(buffer);
+    //std::cout << ASreply_en << std::endl;
+    
+    // decrypt and extract reply
+    std::string ASrep_msg = decrypt(ASreply_en, "clientsecretkey11223");
+    std::vector<std::string> ASreply = extractData(ASrep_msg);
 
-	// recieving data 
-	char buffer[1024] = { 0 }; 
-	recv(AS_socket, buffer, sizeof(buffer), 0); 
-	//std::cout << "Message from server: " << buffer << std::endl; 
+    std::cout << "AS reply: " << ASrep_msg << std::endl;
 
-    return std::string(buffer);
+    return ASreply;
+}
+
+std::string getTGT_en(int serverSocket){
+    //get data
+    char buffer[MAX_BUFFER] = {0};
+    if(recv(serverSocket, buffer, sizeof(buffer), 0) == -1) // TGT ticket
+        printf("Receive error.\n");
+    std::string TGT_en = std::string(buffer);
+
+    return TGT_en;
 }
 
 int main() 
 {
     // user credentials
-	user.userSocket = socket(AF_INET, SOCK_STREAM, 0); 
     user.userID = "USERID1234567";
     user.userPass = "cake8888";
     user.serviceID = "CAKE_COMPANY_LMD_INT";
-    const int AS_PORT = 8080;
-    connect_port(user.userSocket, AS_PORT); //Authentication server
-    std::cout << "CSK: " << user.clientSecretKey() << std::endl;
+    //std::cout << "CSK: " << user.clientSecretKey() << std::endl;
 
-    // 1. Request TGT ticket --------------------------
-    std::string TGTticket = TGTticket_req(AS_PORT);
+    // connect ports
+    connect_port(user.userSocket, AS_PORT);
+
+    // 1. Send request for TGT ticket --------------------------
+    sendTGTticketReq();
 
     // 2. Get AS reply & TGT ticket -------------------------
-    listen_port(user.userSocket, AS_PORT);
-    char buffer[MAX_BUFFER] = { 0 };
-	recv(user.userSocket, buffer, sizeof(buffer), 0); // AS reply
-    std::string ASreply_en = std::string(buffer);
-    for(int i=0; i<10; i++){
-		printf("%2x ",ASreply_en.data()[i]);
-	}
-    recv(user.userSocket, buffer, sizeof(buffer), 0); // TGT ticket
-    std::string TGT_en = std::string(buffer);
-
-    // 2a. Decrypt & check AS reply
-    std::string ASrep_msg = decrypt(ASreply_en, "clientsecretkey11223");
-    //printf("AS reply: %s", ASrep_msg);
-    std::vector<std::string> ASreply = extractData(ASrep_msg);
-
-	// End. Close client socket ------------------------
-	close(user.userSocket); 
+    std::vector<std::string> ASrep = getASreply(user.userSocket);
+    std::string TGT_en = getTGT_en(user.userSocket);
 
 	return 0; 
 }

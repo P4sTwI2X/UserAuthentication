@@ -34,16 +34,25 @@ std::string genRandKey(int length) {
     return key;
 }
 
-void connect_port(int clientSocket, int port){
-    // specifying address 
-	sockaddr_in otherAddress; 
-	otherAddress.sin_family = AF_INET; 
-	otherAddress.sin_port = htons(port); 
-	otherAddress.sin_addr.s_addr = INADDR_ANY; 
+int listen_port(int serverSocket, int port){
+    // specifying the address 
+	sockaddr_in serverAddress; 
+	serverAddress.sin_family = AF_INET; 
+	serverAddress.sin_port = htons(port); 
+	serverAddress.sin_addr.s_addr = INADDR_ANY; 
 
-	// sending connection request 
-	connect(clientSocket, (struct sockaddr*)&otherAddress, 
-			sizeof(otherAddress)); 
+	// binding socket. 
+	bind(serverSocket, (struct sockaddr*)&serverAddress, 
+		sizeof(serverAddress)); 
+
+	// listening to the assigned socket 
+	listen(serverSocket, 5); 
+
+	// accepting connection request 
+	int clientSocket 
+		= accept(serverSocket, nullptr, nullptr); 
+    
+    return clientSocket;
 }
 
 class asReply{
@@ -110,85 +119,64 @@ bool TGTReq_check(std::vector<std::string> data){
 		printf("TGT time requested too short or long: %f", time);
 		return false;
 	}
+	return true;
 }
 
-int listen_port(int serverSocket, int port){
-    // specifying the address 
-	sockaddr_in serverAddress; 
-	serverAddress.sin_family = AF_INET; 
-	serverAddress.sin_port = htons(port); 
-	serverAddress.sin_addr.s_addr = INADDR_ANY; 
-
-	// binding socket. 
-	bind(serverSocket, (struct sockaddr*)&serverAddress, 
-		sizeof(serverAddress)); 
-
-	// listening to the assigned socket 
-	listen(serverSocket, 5); 
-
-	// accepting connection request 
-	int clientSocket 
-		= accept(serverSocket, nullptr, nullptr); 
-    
-    return clientSocket;
-}
-
-int main() 
-{ 
+int main(){
 	// 1. Get request from user
 
-	// creating socket 
-	int serverSocket = socket(AF_INET, SOCK_STREAM, 0); 
-    int serverPort = 8080;
+	// creating sockets
+	int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+	// check error
+	if(serverSocket == -1){
+		printf("Socket creation error.\n");
+	}
+    
+	// set port
+	int serverPort = 8080;
     int clientSocket = listen_port(serverSocket, serverPort);
 
-	// recieving data 
+	// receive data
 	char buffer[MAX_BUFFER] = { 0 }; 
-	recv(clientSocket, buffer, sizeof(buffer), 0); 
-	std::cout << "Message from client: " << buffer << std::endl; 
+	recv(clientSocket, buffer, MAX_BUFFER, 0); 
+	std::cout << "Message received: " << buffer << std::endl; 
 
 	// extract data
 	std::vector<std::string> tgtReqData = extractData(std::string(buffer));
 
-	// check data validity
-	if(TGTReq_check(tgtReqData)){
-		std::cout << "TGT request accepted" << std::endl;
-		TGT tgt;
-		asReply rep;
-
-		// construct AS_reply
-		rep.tgsID = tgsID;
-		rep.tgtLifetime = std::stoi(tgtReqData[2]);
-		//rep.tgsSessionKey = genRandKey(32);
-		rep.tgsSessionKey = "thisisthesessionkey";
-
-		std::cout << "AS reply: " << rep.convert_message() << std::endl;
-
-		for(int i=0; i<10; i++){
-			printf("%2x ",rep.convert_message()[i]);
-		}
-
-		std::string rep_en = encrypt(rep.convert_message(), clientSecretKey);
-
-		// construct TGT
-		tgt.tgsID = tgsID;
-		tgt.tgsSessionKey = rep.tgsSessionKey;
-		tgt.tgtLifetime = rep.tgtLifetime;
-		tgt.userID = tgtReqData[0];
-		tgt.userPort = std::stoi(tgtReqData[2]);
-
-		//std::cout << "TGT: " << tgt.convert_message() << std::endl;
-
-		std::string tgt_en = encrypt(tgt.convert_message(), tgsSecretKey);
-
-		// send packages
-		connect_port(serverSocket, tgt.userPort);
-		send(serverSocket, rep_en.data(), rep_en.length(), 0);
-		send(serverSocket, tgt_en.data(), tgt_en.length(), 0); 
+	// check data
+	if(!TGTReq_check(tgtReqData)){
+		printf("Data check failed.\n");
+		return 0;
 	}
+	std::cout << "TGT request accepted" << std::endl;
+	TGT tgt;
+	asReply rep;
 
-	// closing the socket
-	close(serverSocket);
+	// construct AS_reply
+	rep.tgsID = tgsID;
+	rep.tgtLifetime = std::stoi(tgtReqData[2]);
+	//rep.tgsSessionKey = genRandKey(32);
+	rep.tgsSessionKey = "thisisthesessionkey";
+	std::cout << "AS reply: " << rep.convert_message() << std::endl;
 
-	return 0; 
+	std::string rep_en = encrypt(rep.convert_message(), clientSecretKey);
+
+	// construct TGT
+	tgt.tgsID = tgsID;
+	tgt.tgsSessionKey = rep.tgsSessionKey;
+	tgt.tgtLifetime = rep.tgtLifetime;
+	tgt.userID = tgtReqData[0];
+	tgt.userPort = std::stoi(tgtReqData[2]);
+
+	std::cout << "TGT: " << tgt.convert_message() << std::endl;
+	
+	std::string tgt_en = encrypt(tgt.convert_message(), tgsSecretKey);
+
+	// send packages
+	int length = rep_en.length();
+	send(clientSocket, &length, sizeof(int)/sizeof(char), 0);
+	send(clientSocket, rep_en.data(), rep_en.length(), 0);
+	send(clientSocket, tgt_en.data(), tgt_en.length(), 0); 
 }

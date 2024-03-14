@@ -104,13 +104,17 @@ bool lifetimeCheck(int endTime) {
 //Q: is this the right way to check timestamp ?
 /*A - Thien: I really don't get what you mean by the lifetimeCheck() function,
     but here is an easy way to understand: there are two timestamp checks.
-1. UserAuthenticator.timestamp > ServiceTicket.timestamp + fixed delay time (120 s) if yes then 
-fails
+
+1. ServiceTicket.timestamp + ServiceTicket.lifetime > ServiceServer.time_at if yes then 
+    don't have to check #2, just deny service; else check #2.
+    - After some LONG time, user must enter credentials for a new ticket from the very beginning.    
+2. UserAuthenticator.timestamp > ServiceTicket.timestamp + fixed delay time (120 s) if yes then 
+deny service.
     - This ticket is temporarily used for SHORT service sessions.
-    - If the ticket fails and #2 still false, client can renew the ticket through KDC without having to enter credentials
+    - If the ticket fails and #1 still false, client can renew the ticket through KDC without having to enter credentials
     such as passwords etc.
-2. ServiceTicket.timestamp + ServiceTicket.lifetime > ServiceServer.time_at if yes then fails
-    - After some LONG time, user must enter credentials for a new ticket from the very beginning.
+3. Accept service: ServiceAuthenticator.msg = "Hello user, [timestamp]"
+   Deny service: ServiceAuthenticator.msg = "ERROR, [timestamp]"
 */
 // StackOverflow: https://stackoverflow.com/questions/14682153/lifetime-of-kerberos-tickets
 // Watch: https://www.youtube.com/watch?v=5N242XcKAsM&t=815s&ab_channel=DestinationCertification&t=757s
