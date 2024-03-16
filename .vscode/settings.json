@@ -57,6 +57,25 @@
         "condition_variable": "cpp",
         "semaphore": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "charconv": "cpp",
+        "format": "cpp",
+        "forward_list": "cpp",
+        "ios": "cpp",
+        "locale": "cpp",
+        "optional": "cpp",
+        "xfacet": "cpp",
+        "xiosbase": "cpp",
+        "xlocale": "cpp",
+        "xlocbuf": "cpp",
+        "xlocinfo": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp",
+        "xloctime": "cpp",
+        "xmemory": "cpp",
+        "xstring": "cpp",
+        "xtr1common": "cpp",
+        "xutility": "cpp"
     }
 }
